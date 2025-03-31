@@ -1,10 +1,4 @@
 ﻿C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(517,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
-  g_save.c
-C:\Users\jesus\OneDrive\Documents\GitHub\quake2-full\game\g_save.c(228,25): warning C4100: 'f': unreferenced formal parameter
-C:\Users\jesus\OneDrive\Documents\GitHub\quake2-full\game\g_save.c(476,2): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
-C:\Users\jesus\OneDrive\Documents\GitHub\quake2-full\game\g_save.c(471,6): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
-C:\Users\jesus\OneDrive\Documents\GitHub\quake2-full\game\g_save.c(497,6): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
-C:\Users\jesus\OneDrive\Documents\GitHub\quake2-full\game\g_save.c(637,6): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
-C:\Users\jesus\OneDrive\Documents\GitHub\quake2-full\game\g_save.c(692,6): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  p_weapon.c
      Creating library .\..\release\gamex86.lib and object .\..\release\gamex86.exp
-  game.vcxproj -> C:\Program Files (x86)\Steam\steamapps\common\Quake 2\mod_IT266\gamex86.dll
+  game.vcxproj -> C:\Users\jesus\OneDrive\Desktop\COLLEGE\IT266\quake2-8.10\mod_IT266\gamex86.dll

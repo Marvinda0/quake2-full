@@ -1345,7 +1345,24 @@ void weapon_railgun_fire (edict_t *ent)
 
 	VectorSet(offset, 0, 7,  ent->viewheight-8);
 	P_ProjectSource (ent->client, ent->s.origin, offset, forward, right, start);
-	fire_rail (ent, start, forward, damage, kick);
+
+
+	//shotgun effect
+	for (int i = 0; i < 3; i++) {
+		vec3_t spread_directions;
+		VectorCopy(forward, spread_directions); // we create a copy of foward vector, to change it in every shot. This way shots have same start, but go in different dirtections	
+
+		spread_directions[0] +=  crandom() * 0.3f; //We make the direction random, randominxing the x, y, z variables a little bit. 
+		spread_directions[1] +=  crandom() * 0.3f;
+		spread_directions[2] +=  crandom() * 0.3f;
+		VectorNormalize(spread_directions);
+		fire_rail(ent, start, spread_directions, damage, kick);
+		spread_directions[0] -= crandom() * 0.3f;
+		spread_directions[1] -= crandom() * 0.3f;
+		spread_directions[2] -= crandom() * 0.3f;
+		VectorNormalize(spread_directions);
+		fire_rail(ent, start, spread_directions, damage, kick);
+	}
 
 	// send muzzle flash
 	gi.WriteByte (svc_muzzleflash);
