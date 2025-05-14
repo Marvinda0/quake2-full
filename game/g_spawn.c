@@ -144,6 +144,12 @@ void SP_turret_breach (edict_t *self);
 void SP_turret_base (edict_t *self);
 void SP_turret_driver (edict_t *self);
 
+// MOD functions
+extern int current_turn;
+extern edict_t* currentActiveUnit;
+void SpawnEnemyUnits(void);
+void SpawnPlayerUnits(void);
+
 
 spawn_t	spawns[] = {
 	{"item_health", SP_item_health},
@@ -703,7 +709,7 @@ char *single_statusbar =
 "endif "
 ;
 
-char *dm_statusbar =
+char* dm_statusbar =
 "yb	-24 "
 
 // health
@@ -767,21 +773,114 @@ char *dm_statusbar =
 
 // spectator
 "if 17 "
-  "xv 0 "
-  "yb -58 "
-  "string2 \"SPECTATOR MODE\" "
+"xv 0 "
+"yb -58 "
+"string2 \"SPECTATOR MODE\" "
 "endif "
 
 // chase camera
 "if 16 "
-  "xv 0 "
-  "yb -68 "
-  "string \"Chasing\" "
-  "xv 64 "
-  "stat_string 16 "
+"xv 0 "
+"yb -68 "
+"string \"Chasing\" "
+"xv 64 "
+"stat_string 16 "
 "endif "
 ;
 
+// MOD Functions
+void PlayerUnit_Die(edict_t* self, edict_t* inflictor, edict_t* attacker, int damage, vec3_t point) {
+	gi.dprintf("[DEATH] Unit %d died.\n", self->s.number);
+	self->deadflag = DEAD_DEAD;
+	self->takedamage = DAMAGE_NO;
+	self->s.modelindex = 0; // optionally hide model
+	self->inuse = false;    // free up slot
+}
+void SpawnPlayerUnits(void) {
+	vec3_t spawnPositions[5] = {
+		{1315, 1038, 686},    
+		{957, 833, 606},
+		{834, 605, 494},
+		{1080, 775, 494},
+		{978, 426, 494}
+	};
+
+	for (int i = 0; i < 5; i++) {
+		edict_t* unit = G_Spawn();
+
+		VectorCopy(spawnPositions[i], unit->s.origin);  // Use the correct array name
+		VectorCopy(spawnPositions[i], unit->s.old_origin); // Sometimes used for interpolation
+
+		unit->classname = "player_unit";
+		unit->turnTeam = TEAM_PLAYER;
+		unit->hasActed = false;
+		unit->modTeam = TEAM_PLAYER;
+
+		if (i == 0)
+			unit->weaponType = WEAPON_ROCKET;
+		else if (i == 1)
+			unit->weaponType = WEAPON_SHOTGUN;
+		else if (i == 2)
+			unit->weaponType = WEAPON_GRENADE;
+		else if (i == 3)
+			unit->weaponType = WEAPON_BLASTER;
+		else if (i == 4)
+			unit->weaponType = WEAPON_RAILGUN;
+
+		unit->movetype = MOVETYPE_STEP;
+		unit->solid = SOLID_BBOX;
+
+		unit->s.angles[YAW] = 0; // Set the yaw angle to 0
+		VectorSet(unit->mins, -16, -16, -24); 
+		VectorSet(unit->maxs, 16, 16, 32);
+
+		unit->health = 100;
+		unit->takedamage = DAMAGE_YES;
+		unit->die = PlayerUnit_Die;
+
+
+		//unit->s.modelindex = gi.modelindex("models/players/male/tris.md2");
+		unit->s.modelindex = gi.modelindex("models/monsters/infantry/tris.md2");
+
+		unit->think = TurnThink_Player;
+		unit->nextthink = level.time + 0.1f;
+
+		gi.linkentity(unit);
+	}
+}
+
+// Enemy Unit Types - using built-in monsters
+void SpawnEnemyUnits(void) {
+	vec3_t positions[5] = {
+		{1987, 842, 430},
+		{1845, -92, 686},
+		{1771, 246, 558},
+		{1891, 715, 558},
+		{1477, 7, 686}
+	};
+
+	void (*enemy_spawners[5])(edict_t*) = {
+		SP_monster_soldier,
+		SP_monster_gunner,
+		SP_monster_berserk,
+		SP_monster_infantry,
+		SP_monster_gladiator
+	};
+
+	for (int i = 0; i < 5; i++) {
+		edict_t* enemy = G_Spawn();
+		VectorCopy(positions[i], enemy->s.origin);
+		enemy_spawners[i](enemy);
+		enemy->turnTeam = TEAM_ENEMY;
+		enemy->modTeam = TEAM_ENEMY;
+		enemy->hasActed = false;
+		walkmonster_start(enemy);  
+
+		enemy->think = TurnThink_Enemy;
+		enemy->nextthink = level.time + 0.1f;
+
+	}
+}
 
 /*QUAKED worldspawn (0 0 0) ?
 
@@ -793,8 +892,15 @@ Only used for the world.
 "gravity"	800 is default gravity
 "message"	text to print at user logon
 */
-void SP_worldspawn (edict_t *ent)
-{
+void SP_worldspawn(edict_t* ent){
+	// MOD
+
+	current_turn = TEAM_PLAYER;
+	currentActiveUnit = NULL;
+
+	SpawnPlayerUnits();
+	SpawnEnemyUnits();
+
 	ent->movetype = MOVETYPE_PUSH;
 	ent->solid = SOLID_BSP;
 	ent->inuse = true;			// since the world doesn't use G_Spawn()

@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "g_local.h"
 #include "m_player.h"
 
+extern edict_t* currentActiveUnit;
 
 char *ClientTeam (edict_t *ent)
 {
@@ -898,6 +899,178 @@ void Cmd_PlayerList_f(edict_t *ent)
 	}
 	gi.cprintf(ent, PRINT_HIGH, "%s", text);
 }
+//MOD
+void Cmd_Act_f(edict_t* ent) {
+	if (!currentActiveUnit) {
+		gi.dprintf("[ACT] No active unit.\n");
+		return;
+	}
+
+	if (current_turn != TEAM_PLAYER) {
+		gi.dprintf("[ACT] It's not your turn.\n");
+		return;
+	}
+
+	gi.dprintf("[ACT] Ending turn for unit %d\n", currentActiveUnit->s.number);
+	EndUnitTurn(currentActiveUnit);
+}
+
+void Cmd_Move_f(edict_t* ent) {
+	if (currentActiveUnit->hasMoved) {
+		gi.cprintf(ent, PRINT_HIGH, "[MOVE] This unit has already moved this turn.\n");
+		return;
+	}
+	if (!currentActiveUnit || current_turn != TEAM_PLAYER || currentActiveUnit->modTeam != TEAM_PLAYER) {
+		gi.dprintf("[MOVE] Invalid move: not your unit or not your turn.\n");
+		return;
+	}
+
+	char* dir = gi.argv(1);
+	if (!dir) {
+		gi.dprintf("[MOVE] No direction specified.\n");
+		return;
+	}
+
+	vec3_t forward, right, up;
+	AngleVectors(currentActiveUnit->s.angles, forward, right, up);
+
+	vec3_t moveVec = { 0 };
+
+	if (strcmp(dir, "forward") == 0) {
+		VectorScale(forward, 1200, moveVec);
+	}
+	else if (strcmp(dir, "backward") == 0) {
+		VectorScale(forward, -1200, moveVec);
+	}
+	else if (strcmp(dir, "left") == 0) {
+		VectorScale(right, -1200, moveVec);
+	}
+	else if (strcmp(dir, "right") == 0) {
+		VectorScale(right, 1200, moveVec);
+	}
+
+	else {
+		gi.dprintf("[MOVE] Unknown direction: %s\n", dir);
+		return;
+	}
+
+	VectorCopy(moveVec, currentActiveUnit->velocity);
+	currentActiveUnit->hasMoved = true;
+
+	gi.dprintf("[MOVE] Unit %d moved %s\n", currentActiveUnit->s.number, dir);
+}
+void Cmd_Shoot_f(edict_t* ent) {
+	if (!currentActiveUnit) {
+		gi.cprintf(ent, PRINT_HIGH, "[SHOOT] No active unit selected.\n");
+		return;
+	}
+	if (currentActiveUnit->hasShot) {
+		gi.cprintf(ent, PRINT_HIGH, "[SHOOT] This unit has already shot this turn.\n");
+		return;
+	}
+
+	vec3_t start, dir, forward, right, offset, up;
+
+	// Start from the unit's eye position
+	VectorSet(offset, 0, 0, 24);  // Raise slightly from the ground
+	AngleVectors(currentActiveUnit->s.angles, forward, right, up);
+	G_ProjectSource(currentActiveUnit->s.origin, offset, forward, right, start);
+
+	int damage = 15;
+	int speed = 1000;
+	int effect = EF_BLASTER;
+	qboolean hyper = false;
+	AngleVectors(currentActiveUnit->s.angles, dir, NULL, NULL);         // Calculate forward direction
+	VectorCopy(currentActiveUnit->s.origin, start);                     // Start at entity origin
+	start[2] += currentActiveUnit->viewheight;
+
+	switch (currentActiveUnit->weaponType) {
+	case WEAPON_BLASTER:
+		fire_blaster(currentActiveUnit, start, dir, 15, 1000, EF_BLASTER, false);
+		break;
+	case WEAPON_SHOTGUN:
+		fire_shotgun(currentActiveUnit, start, dir, 6, 8, 500, 500, 12, MOD_SHOTGUN);
+		break;
+	case WEAPON_GRENADE:
+		fire_grenade(currentActiveUnit, start, dir, 120, 600, 2.5,3.0);
+		break;
+	case WEAPON_ROCKET:
+		fire_rocket(currentActiveUnit, start, dir, 100, 650, 120.0, 120.0);
+		break;
+	case WEAPON_RAILGUN:
+		fire_rail(currentActiveUnit, start, dir, 150, 150);
+		break;
+	default:
+		gi.dprintf("[SHOOT] Unknown weapon type\n");
+		return;
+	}
+
+	currentActiveUnit->hasShot = true;
+
+	gi.cprintf(ent, PRINT_HIGH, "[SHOOT] Unit %d fired Weapon.\n", currentActiveUnit->s.number);
+}
+void Cmd_Turn_f(edict_t* ent) {
+	if (!currentActiveUnit) {
+		gi.cprintf(ent, PRINT_HIGH, "[TURN] No active unit.\n");
+		return;
+	}
+
+	char* dir = gi.argv(1);
+	if (!dir) {
+		gi.cprintf(ent, PRINT_HIGH, "[TURN] Usage: turn <left|right|back|front|up|down>\n");
+		return;
+	}
+
+	float angleChange = 0;
+	int axis = YAW; // Default to YAW (horizontal)
+
+	if (strcmp(dir, "left") == 0) {
+		angleChange = 10;
+	}
+	else if (strcmp(dir, "right") == 0) {
+		angleChange = -10;
+	}
+	else if (strcmp(dir, "back") == 0) {
+		angleChange = 180;
+	}
+	else if (strcmp(dir, "front") == 0) {
+		angleChange = 0;
+	}
+	else if (strcmp(dir, "up") == 0) {
+		angleChange = -30;
+		axis = PITCH;
+	}
+	else if (strcmp(dir, "down") == 0) {
+		angleChange = 30;
+		axis = PITCH;
+	}
+	else {
+		gi.cprintf(ent, PRINT_HIGH, "[TURN] Unknown direction: %s\n", dir);
+		return;
+	}
+
+	currentActiveUnit->s.angles[axis] += angleChange;
+
+	if (axis == PITCH) {
+		if (currentActiveUnit->s.angles[PITCH] > 89)
+			currentActiveUnit->s.angles[PITCH] = 89;
+		else if (currentActiveUnit->s.angles[PITCH] < -89)
+			currentActiveUnit->s.angles[PITCH] = -89;
+	}
+	else {
+		// Wrap yaw
+		if (currentActiveUnit->s.angles[YAW] < 0)
+			currentActiveUnit->s.angles[YAW] += 360;
+		else if (currentActiveUnit->s.angles[YAW] >= 360)
+			currentActiveUnit->s.angles[YAW] -= 360;
+	}
+
+	gi.cprintf(ent, PRINT_HIGH, "[TURN] Unit %d turned %s. Now facing (%.0f°, %.0f°)\n",
+		currentActiveUnit->s.number,
+		dir,
+		currentActiveUnit->s.angles[YAW],
+		currentActiveUnit->s.angles[PITCH]);
+}
 
 
 /*
@@ -943,50 +1116,58 @@ void ClientCommand (edict_t *ent)
 	if (level.intermissiontime)
 		return;
 
-	if (Q_stricmp (cmd, "use") == 0)
-		Cmd_Use_f (ent);
-	else if (Q_stricmp (cmd, "drop") == 0)
-		Cmd_Drop_f (ent);
-	else if (Q_stricmp (cmd, "give") == 0)
-		Cmd_Give_f (ent);
-	else if (Q_stricmp (cmd, "god") == 0)
-		Cmd_God_f (ent);
-	else if (Q_stricmp (cmd, "notarget") == 0)
-		Cmd_Notarget_f (ent);
-	else if (Q_stricmp (cmd, "noclip") == 0)
-		Cmd_Noclip_f (ent);
-	else if (Q_stricmp (cmd, "inven") == 0)
-		Cmd_Inven_f (ent);
-	else if (Q_stricmp (cmd, "invnext") == 0)
-		SelectNextItem (ent, -1);
-	else if (Q_stricmp (cmd, "invprev") == 0)
-		SelectPrevItem (ent, -1);
-	else if (Q_stricmp (cmd, "invnextw") == 0)
-		SelectNextItem (ent, IT_WEAPON);
-	else if (Q_stricmp (cmd, "invprevw") == 0)
-		SelectPrevItem (ent, IT_WEAPON);
-	else if (Q_stricmp (cmd, "invnextp") == 0)
-		SelectNextItem (ent, IT_POWERUP);
-	else if (Q_stricmp (cmd, "invprevp") == 0)
-		SelectPrevItem (ent, IT_POWERUP);
-	else if (Q_stricmp (cmd, "invuse") == 0)
-		Cmd_InvUse_f (ent);
-	else if (Q_stricmp (cmd, "invdrop") == 0)
-		Cmd_InvDrop_f (ent);
-	else if (Q_stricmp (cmd, "weapprev") == 0)
-		Cmd_WeapPrev_f (ent);
-	else if (Q_stricmp (cmd, "weapnext") == 0)
-		Cmd_WeapNext_f (ent);
-	else if (Q_stricmp (cmd, "weaplast") == 0)
-		Cmd_WeapLast_f (ent);
-	else if (Q_stricmp (cmd, "kill") == 0)
-		Cmd_Kill_f (ent);
-	else if (Q_stricmp (cmd, "putaway") == 0)
-		Cmd_PutAway_f (ent);
-	else if (Q_stricmp (cmd, "wave") == 0)
-		Cmd_Wave_f (ent);
+	if (Q_stricmp(cmd, "use") == 0)
+		Cmd_Use_f(ent);
+	else if (Q_stricmp(cmd, "drop") == 0)
+		Cmd_Drop_f(ent);
+	else if (Q_stricmp(cmd, "give") == 0)
+		Cmd_Give_f(ent);
+	else if (Q_stricmp(cmd, "god") == 0)
+		Cmd_God_f(ent);
+	else if (Q_stricmp(cmd, "notarget") == 0)
+		Cmd_Notarget_f(ent);
+	else if (Q_stricmp(cmd, "noclip") == 0)
+		Cmd_Noclip_f(ent);
+	else if (Q_stricmp(cmd, "inven") == 0)
+		Cmd_Inven_f(ent);
+	else if (Q_stricmp(cmd, "invnext") == 0)
+		SelectNextItem(ent, -1);
+	else if (Q_stricmp(cmd, "invprev") == 0)
+		SelectPrevItem(ent, -1);
+	else if (Q_stricmp(cmd, "invnextw") == 0)
+		SelectNextItem(ent, IT_WEAPON);
+	else if (Q_stricmp(cmd, "invprevw") == 0)
+		SelectPrevItem(ent, IT_WEAPON);
+	else if (Q_stricmp(cmd, "invnextp") == 0)
+		SelectNextItem(ent, IT_POWERUP);
+	else if (Q_stricmp(cmd, "invprevp") == 0)
+		SelectPrevItem(ent, IT_POWERUP);
+	else if (Q_stricmp(cmd, "invuse") == 0)
+		Cmd_InvUse_f(ent);
+	else if (Q_stricmp(cmd, "invdrop") == 0)
+		Cmd_InvDrop_f(ent);
+	else if (Q_stricmp(cmd, "weapprev") == 0)
+		Cmd_WeapPrev_f(ent);
+	else if (Q_stricmp(cmd, "weapnext") == 0)
+		Cmd_WeapNext_f(ent);
+	else if (Q_stricmp(cmd, "weaplast") == 0)
+		Cmd_WeapLast_f(ent);
+	else if (Q_stricmp(cmd, "kill") == 0)
+		Cmd_Kill_f(ent);
+	else if (Q_stricmp(cmd, "putaway") == 0)
+		Cmd_PutAway_f(ent);
+	else if (Q_stricmp(cmd, "wave") == 0)
+		Cmd_Wave_f(ent);
 	else if (Q_stricmp(cmd, "playerlist") == 0)
 		Cmd_PlayerList_f(ent);
+	else if (Q_stricmp(cmd, "act") == 0)
+		Cmd_Act_f(ent);
+	else if (Q_stricmp(cmd, "move") == 0)
+		Cmd_Move_f(ent);
+	else if (Q_stricmp(cmd, "shoot") == 0)
+		Cmd_Shoot_f(ent);
+	else if (Q_stricmp(cmd, "turn") == 0)
+		Cmd_Turn_f(ent);
 	else	// anything that doesn't match a command will be a chat
 		Cmd_Say_f (ent, false, true);
 }

@@ -85,10 +85,15 @@ void WriteLevel (char *filename);
 void ReadLevel (char *filename);
 void InitGame (void);
 void G_RunFrame (void);
+//MOD
+//extern void UpdateTurnManager(void);
+extern void TurnManagerThink(void);
 
 
 //===================================================================
-
+// MOD HUB
+turn_state_t current_turn;
+float turn_timer;
 
 void ShutdownGame (void)
 {
@@ -360,6 +365,9 @@ void G_RunFrame (void)
 
 	// choose a client for monsters to target this frame
 	AI_SetSightClient ();
+
+	TurnManagerThink(); //MOD
+
 
 	// exit intermissions
 

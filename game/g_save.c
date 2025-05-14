@@ -151,6 +151,10 @@ is loaded.
 */
 void InitGame (void)
 {
+	// MOD
+	current_turn = TURN_PLAYER;
+	turn_timer = 0.0f; 
+
 	gi.dprintf ("==== InitGame ====\n");
 	gi.dprintf("=== MOD_IT266 LOADED SUCCESSFULLY ===\n");
 
@@ -221,6 +225,10 @@ void InitGame (void)
 	game.maxclients = maxclients->value;
 	game.clients = gi.TagMalloc (game.maxclients * sizeof(game.clients[0]), TAG_GAME);
 	globals.num_edicts = game.maxclients+1;
+
+	//MOD Help SCREEN
+	strcpy(game.helpmessage1, "TURN-BASED COMBAT MOD\nPress F3 to finish turn \nUse arrow keys \nto turn the unit around");
+	strcpy(game.helpmessage2, "Press F to Shoot \nPress v to move foward \n Press f4 to turn your unit back");
 }
 
 //=========================================================

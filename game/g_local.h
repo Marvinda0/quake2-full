@@ -181,6 +181,30 @@ typedef enum
 #define PNOISE_WEAPON			1
 #define PNOISE_IMPACT			2
 
+//MOD constants
+#define TEAM_PLAYER 1
+#define TEAM_ENEMY 2
+
+#define WEAPON_BLASTER 0
+#define WEAPON_SHOTGUN 1
+#define WEAPON_GRENADE 2
+#define WEAPON_ROCKET  3
+#define WEAPON_RAILGUN 4
+// init modit286 variables // MOD
+typedef enum {
+	TURN_PLAYER,
+	TURN_ENEMY
+} turn_state_t;
+
+extern turn_state_t current_turn; 
+extern edict_t* currentActiveUnit;
+extern int turn_timer; // Time per turn for a player
+
+qboolean hasMoved;
+qboolean hasShot;
+qboolean IsUnitReady(edict_t* ent); // For helper logic
+void EndUnitTurn(edict_t* ent);     // To cleanly end a unit's turn
+
 
 // edict->movetype values
 typedef enum
@@ -595,6 +619,16 @@ typedef struct
 extern	field_t fields[];
 extern	gitem_t	itemlist[];
 
+//MOD functions g_turn.c
+void TurnThink_Player(edict_t* ent);
+void TurnThink_Player(edict_t* ent);
+void TurnThink_Enemy(edict_t* ent);
+qboolean AllUnitsActed(int team);
+void ResetUnitActions(int team);
+void PrintTurnState(void);
+void TurnManagerThink(void);
+void Cmd_Move_f(edict_t* ent);
+void Cmd_Shoot_f(edict_t* ent);
 
 //
 // g_cmds.c
@@ -1085,6 +1119,22 @@ struct edict_s
 	int			noise_index2;
 	float		volume;
 	float		attenuation;
+
+	// MOD entity variables
+
+	int turnTeam;
+	qboolean hasActed;
+	int modTeam;
+
+	int actionsLeft;
+	vec3_t lastPosition;
+
+	qboolean hasMoved;
+	qboolean hasShot;
+	int weaponType;
+
+	int aiTurnFrames;
+
 
 	// timing variables
 	float		wait;

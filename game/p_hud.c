@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 #include "g_local.h"
+extern int current_turn;
+extern edict_t* currentActiveUnit;
 
 
 
@@ -520,7 +522,38 @@ void G_SetStats (edict_t *ent)
 		ent->client->ps.stats[STAT_HELPICON] = 0;
 
 	ent->client->ps.stats[STAT_SPECTATOR] = 0;
+
+	extern int current_turn;
+	extern edict_t* currentActiveUnit;
+
+	// Only show for real client
+	if (ent->client && ent->client->pers.connected) {
+		int totalUnits = 0;
+		int unitIndex = 0;
+
+		for (int i = 0; i < globals.num_edicts; i++) {
+			edict_t* e = &g_edicts[i];
+			if (!e->inuse || e->modTeam != current_turn)
+				continue;
+
+			totalUnits++;
+			if (e == currentActiveUnit)
+				unitIndex = totalUnits;
+		}
+
+		char msg[64];
+		Com_sprintf(msg, sizeof(msg),
+			"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nTURN: %s   UNIT: %d / %d",
+			(current_turn == TEAM_PLAYER ? "PLAYER" : "ENEMY"),
+			unitIndex, totalUnits);
+
+		// Show text permanently using centerprint (yes, every frame)
+		gi.centerprintf(ent, msg);
+	}
+
+
 }
+
 
 /*
 ===============

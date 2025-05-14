@@ -62,6 +62,9 @@ Used for all impact (hit/punch/slash) attacks
 */
 qboolean fire_hit (edict_t *self, vec3_t aim, int damage, int kick)
 {
+//MOD
+	if (self->modTeam == TEAM_PLAYER && self->hasActed)
+		return;
 	trace_t		tr;
 	vec3_t		forward, right, up;
 	vec3_t		v;
@@ -120,6 +123,12 @@ qboolean fire_hit (edict_t *self, vec3_t aim, int damage, int kick)
 	VectorMA (self->enemy->velocity, kick, v, self->enemy->velocity);
 	if (self->enemy->velocity[2] > 0)
 		self->enemy->groundentity = NULL;
+	//MOD
+	if (self->modTeam == TEAM_PLAYER && self->actionsLeft > 0) {
+		self->actionsLeft--;
+		if (self->actionsLeft <= 0)
+			self->hasActed = 1;
+	}
 	return true;
 }
 
@@ -133,6 +142,8 @@ This is an internal support routine used for bullet/pellet based weapons.
 */
 static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int te_impact, int hspread, int vspread, int mod)
 {
+	if (self->modTeam == TEAM_PLAYER && self->hasActed)
+		return;
 	trace_t		tr;
 	vec3_t		dir;
 	vec3_t		forward, right, up;
@@ -212,6 +223,12 @@ static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 
 			// re-trace ignoring water this time
 			tr = gi.trace (water_start, NULL, NULL, end, self, MASK_SHOT);
+		}
+		//MOD
+		if (self->modTeam == TEAM_PLAYER && self->actionsLeft > 0) {
+			self->actionsLeft--;
+			if (self->actionsLeft <= 0)
+				self->hasActed = 1;
 		}
 	}
 
@@ -344,6 +361,9 @@ void blaster_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *
 
 void fire_blaster (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, int effect, qboolean hyper)
 {
+
+	if (self->modTeam == TEAM_PLAYER && self->hasActed)
+		return;
 	edict_t	*bolt;
 	trace_t	tr;
 
@@ -485,6 +505,8 @@ static void Grenade_Touch (edict_t *ent, edict_t *other, cplane_t *plane, csurfa
 
 void fire_grenade (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int speed, float timer, float damage_radius)
 {
+	if (self->modTeam == TEAM_PLAYER && self->hasActed)
+		return;
 	edict_t	*grenade;
 	vec3_t	dir;
 	vec3_t	forward, right, up;
@@ -619,6 +641,9 @@ void rocket_touch (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *su
 
 void fire_rocket (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, float damage_radius, int radius_damage)
 {
+
+	if (self->modTeam == TEAM_PLAYER && self->hasActed)
+		return;
 	edict_t	*rocket;
 
 	rocket = G_Spawn();
@@ -657,6 +682,9 @@ fire_rail
 */
 void fire_rail (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick)
 {
+
+	if (self->modTeam == TEAM_PLAYER && self->hasActed)
+		return;
 	vec3_t		from;
 	vec3_t		end;
 	trace_t		tr;
@@ -881,6 +909,8 @@ void bfg_think (edict_t *self)
 
 void fire_bfg (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, float damage_radius)
 {
+	if (self->modTeam == TEAM_PLAYER && self->hasActed)
+		return;
 	edict_t	*bfg;
 
 	bfg = G_Spawn();
@@ -911,6 +941,7 @@ void fire_bfg (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, f
 
 	if (self->client)
 		check_dodge (self, bfg->s.origin, dir, speed);
-
+	if (self->modTeam == TEAM_PLAYER)
+		self->hasActed = 1;
 	gi.linkentity (bfg);
 }
