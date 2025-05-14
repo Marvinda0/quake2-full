@@ -1253,6 +1253,7 @@ void PutClientInServer (edict_t *ent)
 	// force the current weapon up
 	client->newweapon = client->pers.weapon;
 	ChangeWeapon (ent);
+	ent->flags |= FL_GODMODE;//MOD Immortal camera man
 }
 
 /*
@@ -1740,6 +1741,29 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 		other = g_edicts + i;
 		if (other->inuse && other->client->chase_target == ent)
 			UpdateChaseCam(other);
+	}
+	//mod camera
+	if (ent->client && currentActiveUnit && currentActiveUnit != ent) {
+		// Get base position from the unit
+		vec3_t camOrigin;
+		VectorCopy(currentActiveUnit->s.origin, camOrigin);
+
+		// Backward offset — move back from the direction the unit is facing
+		vec3_t forward;
+		AngleVectors(currentActiveUnit->s.angles, forward, NULL, NULL);
+		camOrigin[0] -= forward[0] * 32;  
+		camOrigin[1] -= forward[1] * 32;
+
+		// Raise camera a bit for better visibility
+		camOrigin[2] += 50; 
+
+		VectorCopy(camOrigin, ent->s.origin);               // Set player (camera) position
+		VectorCopy(currentActiveUnit->s.angles, ent->s.angles); // Match unit direction
+
+		// Optional: reduce vertical tilt so the camera looks more forward, less up/down
+		ent->s.angles[PITCH] = 0;
+
+		ent->client->ps.gunindex = 0; // Hide weapon model
 	}
 }
 
