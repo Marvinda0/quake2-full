@@ -533,7 +533,9 @@ void G_SetStats (edict_t *ent)
 
 		for (int i = 0; i < globals.num_edicts; i++) {
 			edict_t* e = &g_edicts[i];
-			if (!e->inuse || e->modTeam != current_turn)
+
+			// Only count alive units on the current team
+			if (!e->inuse || e->modTeam != current_turn || e->health <= 0 || e->deadflag == DEAD_DEAD)
 				continue;
 
 			totalUnits++;

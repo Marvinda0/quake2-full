@@ -56,7 +56,8 @@ qboolean AllUnitsActed(int team) {
     edict_t* ent;
     for (int i = 0; i < globals.num_edicts; i++) {
         ent = &g_edicts[i];
-        if (!ent->inuse) continue;
+        if (!ent->inuse || ent->health <= 0 || ent->deadflag == DEAD_DEAD)
+            continue;
         if (ent->modTeam == team && !ent->hasActed)
             return false;
     }
@@ -68,7 +69,8 @@ void ResetUnitActions(int team) {
     edict_t* ent;
     for (int i = 0; i < globals.num_edicts; i++) {
         ent = &g_edicts[i];
-        if (!ent->inuse) continue;
+        if (!ent->inuse || ent->health <= 0 || ent->deadflag == DEAD_DEAD)
+            continue;
         if (ent->modTeam == team) {
             ent->hasActed = false;
             ent->hasMoved = false;
@@ -76,6 +78,7 @@ void ResetUnitActions(int team) {
         }
     }
 }
+
 
 
 void UpdateTurnManager(void) {
@@ -107,7 +110,12 @@ void TurnManagerThink(void) {
         // Try to find the next unit from current_turn's team
         for (int i = 0; i < globals.num_edicts; i++) {
             edict_t* ent = &g_edicts[i];
-            if (!ent->inuse || ent->modTeam != current_turn || ent->hasActed)
+            // Skip if not alive, not on current team, or already acted
+            if (!ent->inuse || ent->health <= 0 || ent->deadflag == DEAD_DEAD)
+                continue;
+            if (ent->modTeam != current_turn)
+                continue;
+            if (ent->hasActed)
                 continue;
 
             currentActiveUnit = ent;

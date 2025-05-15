@@ -122,6 +122,13 @@ void Killed (edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, v
 		monster_death_use (targ);
 	}
 
+	if (targ->modTeam == TEAM_ENEMY) {
+		gi.bprintf(PRINT_HIGH, "An enemy unit has been killed!\n");
+	}
+	else if (targ->modTeam == TEAM_PLAYER) {
+		gi.bprintf(PRINT_HIGH, "A player unit has been killed!\n");
+	}
+
 	targ->die (targ, inflictor, attacker, damage, point);
 }
 
