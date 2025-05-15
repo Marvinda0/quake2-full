@@ -2,7 +2,7 @@
 
 This is a custom Quake II mod that transforms the original real-time gameplay into a **turn-based tactical experience**, inspired by strategy games like XCOM.
 
-In this mod, you control a team of 5 player units, taking turns to move, shoot, and rotate, while facing off against 5 AI-controlled enemy units. Each side takes turns, one unit at a time, in a sequential loop — making every decision count.
+In this mod, you control a team of 5 player units, taking turns to move, shoot, and rotate, while facing off against 5 AI-controlled enemy units. Each side takes turns, one unit at a time, in a sequential loop.
 
 ---
 
@@ -23,7 +23,6 @@ Open the project in Visual Studio and build the solution. Your modded `.dll` wil
 
 ### 4. **Launch the Mod**
 Create a shortcut or use the console:
-
 
 **Note:** The mod currently only works on the map `qdm1`. You must manually load it from the console after launching.
 
