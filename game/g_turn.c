@@ -1,5 +1,6 @@
 #include "g_local.h"
 
+
 edict_t* FindClosestPlayer(edict_t* self);
 void RunMonsterTurnAI(edict_t* ent);
 turn_state_t current_turn = TURN_PLAYER;
@@ -75,6 +76,7 @@ void ResetUnitActions(int team) {
             ent->hasActed = false;
             ent->hasMoved = false;
             ent->hasShot = false;
+            ent->aiTurnFrames = 0; 
         }
     }
 }
@@ -92,7 +94,7 @@ void UpdateTurnManager(void) {
 
         // Reset active unit and assign new one for the next team
         currentActiveUnit = NULL;
-        TurnManagerThink();  // <- this triggers the next AI or player unit to start thinking
+       // TurnManagerThink();  // <- this triggers the next AI or player unit to start thinking
     }
 }
 
@@ -101,6 +103,7 @@ void TurnManagerThink(void) {
     if (!currentActiveUnit) {
         gi.dprintf("[DEBUG] Scanning for next active unit...\n");
 
+            
         for (int i = 0; i < globals.num_edicts; i++) {
             edict_t* ent = &g_edicts[i];
             gi.dprintf("[DEBUG] ent %d - inuse=%d modTeam=%d hasActed=%d classname=%s\n",
@@ -219,28 +222,30 @@ void RunMonsterTurnAI(edict_t* ent) {
 
 edict_t* FindClosestPlayer(edict_t* self) {
     edict_t* closest = NULL;
-    float closestDistSq = 99999999.0f;
+    float bestDistSq = 99999999.0f;
 
     for (int i = 0; i < globals.num_edicts; i++) {
         edict_t* other = &g_edicts[i];
+
         if (!other->inuse || other->modTeam != TEAM_PLAYER || other->health <= 0)
             continue;
 
-        // Optional: only pick visible enemies
-        //if (!visible(self, other))
-        //    continue;
+        if (other->client)  // only skip the actual player camera
+            continue;
 
-        float dx = other->s.origin[0] - self->s.origin[0];
-        float dy = other->s.origin[1] - self->s.origin[1];
-        float dz = other->s.origin[2] - self->s.origin[2];
-        float distSq = dx * dx + dy * dy + dz * dz;
+        vec3_t delta;
+        VectorSubtract(other->s.origin, self->s.origin, delta);
+        float distSq = delta[0] * delta[0] + delta[1] * delta[1] + delta[2] * delta[2];
 
-        if (distSq < closestDistSq) {
-            closestDistSq = distSq;
+        if (distSq < bestDistSq) {
+            bestDistSq = distSq;
             closest = other;
         }
     }
 
     return closest;
 }
+
+
+
 
